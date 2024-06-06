@@ -4,14 +4,9 @@ const URL = 'http://localhost:3000/'
 // const URL = ''
 const socket = io(URL)
 
-const state = {
-  latency: 0
-}
-
 socket.on('connect', () => {
   console.log('Conectado', socket.id)
 
-  document.getElementById('my-local-title').innerHTML = `<i class="fab fa-youtube"></i> Local ${socket.id}`
 
   socket.onAny((eventName) => {
     console.log('EVENTO: ', eventName, socket.id)
@@ -22,7 +17,9 @@ socket.on('connect', () => {
 
     socket.volatile.emit('ping', () => {
       const duration = Date.now() - start
-      state.latency = duration
+      document.getElementById(
+        'my-local-title'
+      ).innerHTML = `<i class="fab fa-youtube"></i> Local media (${socket.id}) - ${duration}ms`
       console.log('pong', duration, socket.id)
     })
   }, 1000)
