@@ -20,7 +20,6 @@ socket.on('connect', () => {
       document.getElementById(
         'my-local-title'
       ).innerHTML = `<i class="fab fa-youtube"></i> Local media (${socket.id}) - ${duration}ms`
-      console.log('pong', duration, socket.id)
     })
   }, 1000)
 })
