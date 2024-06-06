@@ -11,7 +11,7 @@ const state = {
 socket.on('connect', () => {
   console.log('Conectado', socket.id)
 
-  document.getElementById('my-local-title').innerHTML = `Local ${socket.id}`
+  document.getElementById('my-local-title').innerHTML = `<i class="fab fa-youtube"></i> Local ${socket.id}`
 
   socket.onAny((eventName) => {
     console.log('EVENTO: ', eventName, socket.id)
@@ -49,6 +49,11 @@ socket.request = function request(type, data = {}) {
 let rc = null
 
 function joinRoom(name, roomId) {
+  if (!socket.connected) {
+    console.log('socket was disconnected, conecting...')
+    socket.connect()
+  }
+
   if (rc && rc.isOpen()) {
     console.log('Already connected to a room')
   } else {
@@ -73,6 +78,7 @@ function roomOpen() {
   reveal(devicesButton)
   control.className = ''
   reveal(videoMedia)
+  reveal(disconnectSocket)
 }
 
 function hide(elem) {

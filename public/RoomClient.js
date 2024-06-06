@@ -630,6 +630,11 @@ class RoomClient {
     alert('ROOM URL copied to clipboard 👍')
   }
 
+  disconnectSocket() {
+    console.log('disconnected socket')
+    this.socket.disconnect()
+  }
+
   showDevices() {
     if (!this.isDevicesVisible) {
       reveal(devicesList)
