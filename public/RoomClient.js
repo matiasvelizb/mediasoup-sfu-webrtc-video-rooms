@@ -15,7 +15,7 @@ const _EVENTS = {
 }
 
 class RoomClient {
-  constructor(localMediaEl, remoteVideoEl, remoteAudioEl, mediasoupClient, socket, room_id, name, successCallback) {
+  constructor(localMediaEl, remoteVideoEl, remoteAudioEl, mediasoupClient, socket, roomId, name, successCallback) {
     this.name = name
     this.localMediaEl = localMediaEl
     this.remoteVideoEl = remoteVideoEl
@@ -26,7 +26,7 @@ class RoomClient {
     this.producerTransport = null
     this.consumerTransport = null
     this.device = null
-    this.room_id = room_id
+    this.roomId = roomId
 
     this.isVideoOnFullScreen = false
     this.isDevicesVisible = false
@@ -37,7 +37,7 @@ class RoomClient {
     console.log('Mediasoup client', mediasoupClient)
 
     /**
-     * map that contains a mediatype as key and producer_id as value
+     * map that contains a mediatype as key and producerId as value
      */
     this.producerLabel = new Map()
 
@@ -50,9 +50,9 @@ class RoomClient {
       }.bind(this)
     )
 
-    this.createRoom(room_id).then(
+    this.createRoom(roomId).then(
       async function () {
-        await this.join(name, room_id)
+        await this.join(name, roomId)
         this.initSockets()
         this._isOpen = true
         successCallback()
@@ -62,21 +62,21 @@ class RoomClient {
 
   ////////// INIT /////////
 
-  async createRoom(room_id) {
+  async createRoom(roomId) {
     await this.socket
       .request('createRoom', {
-        room_id
+        roomId
       })
       .catch((err) => {
         console.log('Create room error:', err)
       })
   }
 
-  async join(name, room_id) {
+  async join(name, roomId) {
     socket
       .request('join', {
         name,
-        room_id
+        roomId
       })
       .then(
         async function (e) {
@@ -133,7 +133,7 @@ class RoomClient {
           this.socket
             .request('connectTransport', {
               dtlsParameters,
-              transport_id: data.id
+              transportId: data.id
             })
             .then(callback)
             .catch(errback)
@@ -144,13 +144,13 @@ class RoomClient {
         'produce',
         async function ({ kind, rtpParameters }, callback, errback) {
           try {
-            const { producer_id } = await this.socket.request('produce', {
+            const { producerId } = await this.socket.request('produce', {
               producerTransportId: this.producerTransport.id,
               kind,
               rtpParameters
             })
             callback({
-              id: producer_id
+              id: producerId
             })
           } catch (err) {
             errback(err)
@@ -198,7 +198,7 @@ class RoomClient {
         function ({ dtlsParameters }, callback, errback) {
           this.socket
             .request('connectTransport', {
-              transport_id: this.consumerTransport.id,
+              transportId: this.consumerTransport.id,
               dtlsParameters
             })
             .then(callback)
@@ -233,15 +233,15 @@ class RoomClient {
   initSockets() {
     this.socket.on(
       'consumerClosed',
-      function ({ consumer_id }) {
-        console.log('Closing consumer:', consumer_id)
-        this.removeConsumer(consumer_id)
+      function ({ consumerId }) {
+        console.log('Closing consumer:', consumerId)
+        this.removeConsumer(consumerId)
       }.bind(this)
     )
 
     /**
      * data: [ {
-     *  producer_id:
+     *  producerId:
      *  producer_socket_id:
      * }]
      */
@@ -249,8 +249,8 @@ class RoomClient {
       'newProducers',
       async function (data) {
         console.log('New producers', data)
-        for (let { producer_id } of data) {
-          await this.consume(producer_id)
+        for (let { producerId } of data) {
+          await this.consume(producerId)
         }
       }.bind(this)
     )
@@ -258,6 +258,7 @@ class RoomClient {
     this.socket.on(
       'disconnect',
       function () {
+        console.log('Disconnect')
         this.exit(true)
       }.bind(this)
     )
@@ -388,6 +389,7 @@ class RoomClient {
         this.producers.delete(producer.id)
       })
 
+      console.log('Guardando producer', producer)
       this.producerLabel.set(type, producer.id)
 
       switch (type) {
@@ -408,11 +410,13 @@ class RoomClient {
     }
   }
 
-  async consume(producer_id) {
+  async consume(producerId) {
     //let info = await this.roomInfo()
 
-    this.getConsumeStream(producer_id).then(
+    this.getConsumeStream(producerId).then(
       function ({ consumer, stream, kind }) {
+        console.log('consume', consumer, 'prodid', producerId)
+
         this.consumers.set(consumer.id, consumer)
 
         let elem
@@ -485,19 +489,19 @@ class RoomClient {
       return
     }
 
-    let producer_id = this.producerLabel.get(type)
-    console.log('Close producer', producer_id)
+    let producerId = this.producerLabel.get(type)
+    console.log('Close producer', producerId)
 
     this.socket.emit('producerClosed', {
-      producer_id
+      producerId: producerId
     })
 
-    this.producers.get(producer_id).close()
-    this.producers.delete(producer_id)
+    this.producers.get(producerId).close()
+    this.producers.delete(producerId)
     this.producerLabel.delete(type)
 
     if (type !== mediaType.audio) {
-      let elem = document.getElementById(producer_id)
+      let elem = document.getElementById(producerId)
       elem.srcObject.getTracks().forEach(function (track) {
         track.stop()
       })
@@ -530,8 +534,8 @@ class RoomClient {
       return
     }
 
-    let producer_id = this.producerLabel.get(type)
-    this.producers.get(producer_id).pause()
+    let producerId = this.producerLabel.get(type)
+    this.producers.get(producerId).pause()
   }
 
   resumeProducer(type) {
@@ -540,21 +544,22 @@ class RoomClient {
       return
     }
 
-    let producer_id = this.producerLabel.get(type)
-    this.producers.get(producer_id).resume()
+    let producerId = this.producerLabel.get(type)
+    this.producers.get(producerId).resume()
   }
 
-  removeConsumer(consumer_id) {
-    let elem = document.getElementById(consumer_id)
+  removeConsumer(consumerId) {
+    let elem = document.getElementById(consumerId)
     elem.srcObject.getTracks().forEach(function (track) {
       track.stop()
     })
     elem.parentNode.removeChild(elem)
 
-    this.consumers.delete(consumer_id)
+    this.consumers.delete(consumerId)
   }
 
   exit(offline = false) {
+    console.log('exit clicked')
     let clean = function () {
       this._isOpen = false
       this.consumerTransport.close()

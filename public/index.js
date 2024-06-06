@@ -1,6 +1,32 @@
 if (location.href.substr(0, 5) !== 'https') location.href = 'https' + location.href.substr(4, location.href.length - 4)
 
-const socket = io()
+const URL = 'http://localhost:3000/'
+// const URL = ''
+const socket = io(URL)
+
+const state = {
+  latency: 0
+}
+
+socket.on('connect', () => {
+  console.log('Conectado', socket.id)
+
+  document.getElementById('my-local-title').innerHTML = `Local ${socket.id}`
+
+  socket.onAny((eventName) => {
+    console.log('EVENTO: ', eventName, socket.id)
+  })
+
+  setInterval(() => {
+    const start = Date.now()
+
+    socket.volatile.emit('ping', () => {
+      const duration = Date.now() - start
+      state.latency = duration
+      console.log('pong', duration, socket.id)
+    })
+  }, 1000)
+})
 
 let producer = null
 
@@ -22,13 +48,13 @@ socket.request = function request(type, data = {}) {
 
 let rc = null
 
-function joinRoom(name, room_id) {
+function joinRoom(name, roomId) {
   if (rc && rc.isOpen()) {
     console.log('Already connected to a room')
   } else {
     initEnumerateDevices()
 
-    rc = new RoomClient(localMedia, remoteVideos, remoteAudios, window.mediasoupClient, socket, room_id, name, roomOpen)
+    rc = new RoomClient(localMedia, remoteVideos, remoteAudios, window.mediasoupClient, socket, roomId, name, roomOpen)
 
     addListeners()
   }
