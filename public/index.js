@@ -1,6 +1,7 @@
 if (location.href.substr(0, 5) !== 'https') location.href = 'https' + location.href.substr(4, location.href.length - 4)
 
-const URL = 'http://localhost:3000/'
+//const URL = 'http://localhost:3000/'
+const URL = 'https://signalingcert.medicap.cl:3000'
 // const URL = ''
 const socket = io(URL)
 
